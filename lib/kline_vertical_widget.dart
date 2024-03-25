@@ -134,9 +134,9 @@ class _KLineVerticalWidgetState extends State<KLineVerticalWidget> with TickerPr
                   height: 20,
                   color: Color(0xff3D536c),
                 ),
-                Expanded(child: Center(
+              /*  Expanded(child: Center(
                   child: IconButton(icon: Icon(Icons.view_module,color: Color(0xff3D536c)), onPressed: indicatorsShowOrHide),
-                ))
+                ))*/
               ],
             ),
           ),

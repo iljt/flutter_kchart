@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'kchart/flutter_kchart.dart';
@@ -6,6 +9,8 @@ import 'kchart/chart_style.dart';
 import 'kline_vertical_widget.dart';
 import 'kline_data_controller.dart';
 import 'network/httptool.dart';
+import 'package:web_socket_channel/status.dart' as status;
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() => runApp(MyApp());
 
@@ -101,13 +106,75 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     );
   }
 
+  Timer _timer;
   void getData(String period) async {
-//    String result;
-//    print('获取数据失败,获取本地数据');
+    //webSocket
+   /* final wsUrl = Uri.parse('ws://example.com');
+    final channel = WebSocketChannel.connect(wsUrl);
+
+    await channel.ready;
+
+    channel.stream.listen((message) {
+      print("message= "+message);
+      channel.sink.add('received!');
+      channel.sink.close(status.goingAway);
+    });*/
 
     setState(() {
       datas = [];
       showLoading = true;
+    });
+    if(_timer!=null){
+      _timer.cancel();
+    }
+    var timeDuration=5;
+    if(period == "1min"){
+       timeDuration = 5;
+    }else if(period == "5min"){
+       timeDuration = 5*60;
+    }else if(period == "15min"){
+       timeDuration = 15*60;
+    }else if(period == "30min"){
+       timeDuration = 30*60;
+    }else if(period == "60min"){
+      timeDuration = 60*60;
+    }else if(period == "4hour"){
+      timeDuration = 4*60*60;
+    }else if(period == "1day"){
+      timeDuration = 24*60*60;
+    }else if(period == "1week"){
+      timeDuration = 7*24*60*60;
+    }else if(period == "1mon"){
+      timeDuration = 30*24*60*60;
+    }else if(period == "1year"){
+      timeDuration = 12*30*24*60*60;
+    }
+    var timeInterval =  Duration(seconds: timeDuration);
+    _timer = Timer.periodic(timeInterval , (timer){
+      // 循环一定要记得设置取消条件，手动取消
+      /* if(someCondition is true){
+        _timer.cancel();
+      }*/
+      //更新最后一条数据
+      //拷贝一个对象，修改数据
+      print("Timer execute");
+    /*  id: K线数据的时间戳或者唯一标识符。
+        open: 该时间段开盘价，即开始时的价格。
+        close: 该时间段收盘价，即结束时的价格。
+        low: 该时间段内的最低价。
+        high: 该时间段内的最高价。
+        amount: 该时间段内的成交量，即交易量。
+        vol: 该时间段内的成交额，交易总额。
+        count: 交易次数，即在该时间段内发生了多少笔交易。*/
+       var kLineEntity = KLineEntity.fromJson(datas.last.toJson());
+       kLineEntity.id = kLineEntity.id +timeDuration /*60 * 60 * 24*/;//拼接坐标x轴时间
+       kLineEntity.open = kLineEntity.close;
+       kLineEntity.close += (Random().nextInt(100) - 50).toDouble();
+       datas.last.high = max(datas.last.high, datas.last.close);
+       datas.last.low = min(datas.last.low, datas.last.close);
+       kLineEntity.vol += (Random().nextInt(10000) - 2000);
+       DataUtil.addLastData(datas, kLineEntity);
+       setState(() {});
     });
     //先从assets加载，再从网络加载
     Map<String,dynamic> results = await  HttpTool.tool.loadFromAssets('https://api.huobi.br.com/market/history/kline?period=${period ?? '1day'}&size=300&symbol=btcusdt');
@@ -143,5 +210,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 //      showLoading = false;
 //      setState(() {});
 
+  }
+
+  @override
+  void dispose() {
+    // 组件销毁时判断Timer是否仍然处于激活状态，是则取消
+    if(_timer.isActive){
+      _timer.cancel();
+    }
+    super.dispose();
   }
 }
